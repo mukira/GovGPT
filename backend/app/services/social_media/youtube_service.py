@@ -10,13 +10,37 @@ from googleapiclient.discovery import build
 class YouTubeService:
     """Service for fetching Kenya news channel comments from YouTube"""
     
-    # Kenya news channel IDs (can search by name if ID not known)
+    # ALL Kenya news channel IDs
     KENYA_CHANNELS = {
-        'citizen_tv': 'UCr1ndHU7CP-Zd7tXoDsv9mA',  # Citizen TV Kenya
-        'ktn_news': 'UCmulUe0S0-9MrXOIlNxfYjQ',     # KTN News Kenya
-        'ntv_kenya': 'UCRnEELsRxmkNcJpU7RWHJ6Q',    # NTV Kenya
-        'kbc_channel1': 'UCxQNqO8_8fxGCJxE0sZKXRg', # KBC Channel 1
-        'k24tv': 'UCuGikr9ckIw9Vsk9XdRxqlQ',        # K24 TV
+        # Major TV Stations
+        'citizen_tv': 'UCr1ndHU7CP-Zd7tXoDsv9mA',      # Citizen TV Kenya
+        'ktn_news': 'UCmulUe0S0-9MrXOIlNxfYjQ',         # KTN News Kenya
+        'ntv_kenya': 'UCRnEELsRxmkNcJpU7RWHJ6Q',        # NTV Kenya
+        'kbc_channel1': 'UCxQNqO8_8fxGCJxE0sZKXRg',     # KBC Channel 1
+        'k24tv': 'UCuGikr9ckIw9Vsk9XdRxqlQ',            # K24 TV
+        'tv47_kenya': 'UC7RQon_YwCNp_EbdmGHzDzQ',       # TV47 Kenya
+        'switch_tv': 'UCWxLADMCMhGBlgGRmW-YBww',        # Switch TV
+        
+        # Newspapers & Digital
+        'nation_africa': 'UCL_qhDIV47Yn8ouZvBCdVBg',    # Nation Africa (Daily Nation)
+        'standard_digital': 'UCxIMmLAMnR0M8u1GzEKYGng', # Standard Digital
+        'the_star_kenya': 'UCqQO8CRq1f0zSJB2h3e5pkg',   # The Star Kenya
+        'business_daily': 'UCqA0j6V1L5ecV5KwfphU3_g',   # Business Daily Africa
+        
+        # Political/Analysis
+        'trending_kenya': 'UCl4CG9BBPm1HUP4lWBfZl5g',   # Trending Kenya
+        'kenya_citizen_tv': 'UCr1ndHU7CP-Zd7tXoDsv9mA', # Kenya Citizen TV (backup)
+        'spice_fm': 'UCpPNO6P2-1NqqI0FfX6nVig',         # Spice FM
+        
+        # Radio Stations (with video)
+        'radio_citizen': 'UCvN0y6pFg3GYOQy-b1WVd1Q',    # Radio Citizen
+        'kiss100': 'UCJ7VRHI8hnr5I5fSXBx9vJQ',          # Kiss 100 Kenya
+        'classic_105': 'UC1cIJr7B5Dy1g8ukWRWR8dQ',      # Classic 105
+        
+        # Regional & Vernacular
+        'inooro_tv': 'UCQ8S5JDyM9Xp2vKSmF8A7wA',        # Inooro TV
+        'ramogi_tv': 'UCgqzCWCl0K4BLpfzZwP7dHQ',        # Ramogi TV
+        'kass_tv': 'UC4kcQR8O9kL4XHH2RMKZN3w',          # Kass TV
     }
     
     def __init__(self, api_key: str = None):
