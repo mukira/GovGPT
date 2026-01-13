@@ -33,10 +33,20 @@ class GDELTService:
             List of article dictionaries with standardized format
         """
         try:
-            # Build search query
+            # Build comprehensive Kenya search query
             query_parts = ["Kenya"]
+            
+            # Add policy-specific keywords if provided
             if keywords:
                 query_parts.extend(keywords)
+            else:
+                # Default: comprehensive Kenya policy coverage
+                policy_keywords = [
+                    "government", "policy", "legislation", "parliament",
+                    "senate", "county", "ministry", "budget", "economy",
+                    "agriculture", "education", "health", "infrastructure"
+                ]
+                query_parts.extend(policy_keywords[:3])  # Add top 3 for broader coverage
             
             query = " ".join(query_parts)
             
