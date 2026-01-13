@@ -1,0 +1,67 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# AI/ML - LangChain and LLM
+langchain==0.1.4
+langchain-community==0.0.16
+groq==0.4.1
+
+# Vector Database
+qdrant-client==1.7.1
+
+# Embeddings
+sentence-transformers==2.3.1
+transformers==4.36.2
+torch==2.1.2
+
+# Document Processing
+pymupdf==1.23.8
+pandas==2.1.4
+openpyxl==3.1.2
+python-docx==1.1.0
+tabula-py==2.9.0
+python-pptx==0.6.23
+
+# News & Sentiment
+newsapi-python==0.2.7
+beautifulsoup4==4.12.3
+requests==2.31.0
+lxml==5.1.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# Caching (Optional)
+redis==5.0.1
+
+# Utilities
+python-dotenv==1.0.0
+aiofiles==23.2.1
+httpx==0.26.0
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+pytest-benchmark==4.0.0
+httpx==0.26.0
+locust==2.20.0
+
+# Code Quality
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+pylint==3.0.3
+isort==5.13.2
+bandit==1.7.6
+safety==3.0.1
+
+# Logging & Monitoring
+structlog==24.1.0
+sentry-sdk[fastapi]==1.39.2

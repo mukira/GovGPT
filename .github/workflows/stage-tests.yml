@@ -1,0 +1,379 @@
+name: Implementation Stage Testing
+
+# Tests for each implementation phase
+# Can be run individually to verify specific stages
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Implementation stage to test'
+        required: true
+        type: choice
+        options:
+          - phase-1-setup
+          - phase-2-document-processing
+          - phase-3-rag-system
+          - phase-4-chat-interface
+          - phase-5-impact-analysis
+          - phase-6-population-data
+          - phase-7-news-sentiment
+          - phase-8-explainability
+          - phase-9-dashboard
+          - phase-10-optimization
+          - phase-11-deployment
+
+jobs:
+  # Phase 1: Project Setup
+  phase-1-setup:
+    if: github.event.inputs.stage == 'phase-1-setup' || github.event.inputs.stage == ''
+    name: 'Phase 1: Project Setup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Verify directory structure
+        run: |
+          test -d frontend
+          test -d backend
+          test -d docs
+          test -d .github/workflows
+          test -f README.md
+          echo "✅ Directory structure verified"
+      
+      - name: Check configuration files
+        run: |
+          test -f .gitignore
+          test -f backend/.env.example
+          test -f frontend/.env.example
+          echo "✅ Configuration files present"
+      
+      - name: Verify Python setup
+        run: |
+          test -f backend/requirements.txt
+          test -f backend/app/__init__.py
+          test -f backend/app/main.py
+          echo "✅ Backend structure verified"
+      
+      - name: Verify Node.js setup
+        run: |
+          test -f frontend/package.json
+          test -f frontend/vite.config.ts
+          test -f frontend/tsconfig.json
+          echo "✅ Frontend structure verified"
+
+  # Phase 2: Document Processing
+  phase-2-document-processing:
+    if: github.event.inputs.stage == 'phase-2-document-processing'
+    name: 'Phase 2: Document Processing'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install pymupdf pandas openpyxl python-docx tabula-py pytest
+      
+      - name: Test PDF parser
+        run: |
+          cd backend
+          pytest tests/unit/test_pdf_parser.py -v
+      
+      - name: Test Excel parser
+        run: |
+          cd backend
+          pytest tests/unit/test_excel_parser.py -v
+      
+      - name: Test chunking strategy
+        run: |
+          cd backend
+          pytest tests/unit/test_chunking.py -v
+      
+      - name: Test metadata extraction
+        run: |
+          cd backend
+          pytest tests/unit/test_metadata.py -v
+
+  # Phase 3: RAG System
+  phase-3-rag-system:
+    if: github.event.inputs.stage == 'phase-3-rag-system'
+    name: 'Phase 3: RAG System'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test embedding generation
+        run: |
+          cd backend
+          pytest tests/integration/test_embeddings.py -v
+      
+      - name: Test vector storage
+        run: |
+          cd backend
+          pytest tests/integration/test_vector_db.py -v
+      
+      - name: Test retrieval accuracy
+        run: |
+          cd backend
+          pytest tests/integration/test_retrieval.py -v -k "test_retrieval_accuracy"
+      
+      - name: Test hybrid search
+        run: |
+          cd backend
+          pytest tests/integration/test_hybrid_search.py -v
+
+  # Phase 4: Chat Interface
+  phase-4-chat-interface:
+    if: github.event.inputs.stage == 'phase-4-chat-interface'
+    name: 'Phase 4: Chat Interface'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: Test chat components
+        run: |
+          cd frontend
+          npm run test -- src/components/Chat
+      
+      - name: Test message rendering
+        run: |
+          cd frontend
+          npm run test -- src/components/MessageBubble
+      
+      - name: Test streaming
+        run: |
+          cd frontend
+          npm run test -- src/hooks/useStreamingResponse
+
+  # Phase 5: Impact Analysis
+  phase-5-impact-analysis:
+    if: github.event.inputs.stage == 'phase-5-impact-analysis'
+    name: 'Phase 5: Impact Analysis'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test impact prompts
+        run: |
+          cd backend
+          pytest tests/unit/test_impact_prompts.py -v
+      
+      - name: Test scenario comparison
+        run: |
+          cd backend
+          pytest tests/integration/test_scenario_analysis.py -v
+      
+      - name: Test structured outputs
+        run: |
+          cd backend
+          pytest tests/unit/test_structured_outputs.py -v
+
+  # Phase 6: Population Data Integration
+  phase-6-population-data:
+    if: github.event.inputs.stage == 'phase-6-population-data'
+    name: 'Phase 6: Population Data'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test UN Data API client
+        run: |
+          cd backend
+          pytest tests/integration/test_un_data.py -v
+      
+      - name: Test World Bank client
+        run: |
+          cd backend
+          pytest tests/integration/test_world_bank.py -v
+      
+      - name: Test population context enrichment
+        run: |
+          cd backend
+          pytest tests/unit/test_population_context.py -v
+
+  # Phase 7: News & Sentiment Analysis
+  phase-7-news-sentiment:
+    if: github.event.inputs.stage == 'phase-7-news-sentiment'
+    name: 'Phase 7: News & Sentiment'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test news fetching
+        run: |
+          cd backend
+          pytest tests/integration/test_news_service.py -v
+      
+      - name: Test sentiment analysis
+        run: |
+          cd backend
+          pytest tests/unit/test_sentiment.py -v
+      
+      - name: Test sentiment correlation
+        run: |
+          cd backend
+          pytest tests/integration/test_news_correlation.py -v
+
+  # Phase 8: Explainability
+  phase-8-explainability:
+    if: github.event.inputs.stage == 'phase-8-explainability'
+    name: 'Phase 8: Explainability'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test source tracking
+        run: |
+          cd backend
+          pytest tests/unit/test_source_tracking.py -v
+      
+      - name: Test confidence calculation
+        run: |
+          cd backend
+          pytest tests/unit/test_confidence.py -v
+      
+      - name: Test audit logging
+        run: |
+          cd backend
+          pytest tests/integration/test_audit_trail.py -v
+
+  # Phase 9: Dashboard
+  phase-9-dashboard:
+    if: github.event.inputs.stage == 'phase-9-dashboard'
+    name: 'Phase 9: Dashboard'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: Test dashboard components
+        run: |
+          cd frontend
+          npm run test -- src/components/Dashboard
+      
+      - name: Test charts
+        run: |
+          cd frontend
+          npm run test -- src/components/Charts
+      
+      - name: Test data export
+        run: |
+          cd frontend
+          npm run test -- src/utils/export
+
+  # Phase 10: Performance & Optimization
+  phase-10-optimization:
+    if: github.event.inputs.stage == 'phase-10-optimization'
+    name: 'Phase 10: Performance'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install locust pytest-benchmark
+      
+      - name: Run benchmark tests
+        run: |
+          cd backend
+          pytest tests/performance/ --benchmark-only
+      
+      - name: Load testing
+        run: |
+          cd backend
+          locust -f tests/load/locustfile.py --headless -u 100 -r 10 -t 1m
+
+  # Phase 11: Deployment
+  phase-11-deployment:
+    if: github.event.inputs.stage == 'phase-11-deployment'
+    name: 'Phase 11: Deployment'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check deployment scripts
+        run: |
+          test -f scripts/deploy.sh
+          test -x scripts/deploy.sh
+          echo "✅ Deployment scripts ready"
+      
+      - name: Verify environment templates
+        run: |
+          test -f backend/.env.example
+          test -f frontend/.env.example
+          echo "✅ Environment templates present"
+      
+      - name: Check health check endpoint
+        run: |
+          test -f scripts/health-check.sh
+          echo "✅ Health check configured"
+      
+      - name: Verify documentation
+        run: |
+          test -f docs/deployment.md
+          test -f docs/api.md
+          echo "✅ Documentation complete"

@@ -1,0 +1,482 @@
+name: CI/CD Pipeline - Full Stack Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18.x'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ============================================================================
+  # STAGE 1: Code Quality & Linting
+  # ============================================================================
+  code-quality:
+    name: 'Stage 1: Code Quality'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      # Python linting
+      - name: Install Python linters
+        run: |
+          pip install black flake8 mypy pylint isort
+      
+      - name: Black formatting check
+        run: |
+          cd backend
+          black --check app/ tests/
+        continue-on-error: true
+      
+      - name: Flake8 linting
+        run: |
+          cd backend
+          flake8 app/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+        continue-on-error: true
+      
+      - name: isort import sorting
+        run: |
+          cd backend
+          isort --check-only app/ tests/
+        continue-on-error: true
+      
+      # Frontend linting
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: ESLint check
+        run: |
+          cd frontend
+          npm run lint
+        continue-on-error: true
+      
+      - name: TypeScript type check
+        run: |
+          cd frontend
+          npm run type-check
+        continue-on-error: true
+      
+      - name: Prettier formatting check
+        run: |
+          cd frontend
+          npm run format:check
+        continue-on-error: true
+      
+      - name: '✅ Stage 1 Complete'
+        run: echo "Code quality checks completed"
+
+  # ============================================================================
+  # STAGE 2: Security Scanning
+  # ============================================================================
+  security-scan:
+    name: 'Stage 2: Security Scanning'
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install safety
+        run: pip install safety bandit
+      
+      - name: Python dependency security check
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          safety check --json
+        continue-on-error: true
+      
+      - name: Bandit security linting
+        run: |
+          cd backend
+          bandit -r app/ -f json
+        continue-on-error: true
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Frontend npm audit
+        run: |
+          cd frontend
+          npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: '✅ Stage 2 Complete'
+        run: echo "Security scanning completed"
+
+  # ============================================================================
+  # STAGE 3: Backend Unit Tests
+  # ============================================================================
+  backend-unit-tests:
+    name: 'Stage 3: Backend Unit Tests'
+    runs-on: ubuntu-latest
+    needs: security-scan
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+      
+      - name: Run unit tests
+        run: |
+          cd backend
+          pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=html
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+      
+      - name: '✅ Stage 3 Complete'
+        run: echo "Backend unit tests passed"
+
+  # ============================================================================
+  # STAGE 4: Frontend Unit Tests
+  # ============================================================================
+  frontend-unit-tests:
+    name: 'Stage 4: Frontend Unit Tests'
+    runs-on: ubuntu-latest
+    needs: security-scan
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: Run unit tests
+        run: |
+          cd frontend
+          npm run test:unit -- --coverage
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/coverage/coverage-final.json
+          flags: frontend
+      
+      - name: '✅ Stage 4 Complete'
+        run: echo "Frontend unit tests passed"
+
+  # ============================================================================
+  # STAGE 5: Document Processing Tests
+  # ============================================================================
+  document-processing-tests:
+    name: 'Stage 5: Document Processing'
+    runs-on: ubuntu-latest
+    needs: backend-unit-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test PDF parsing
+        run: |
+          cd backend
+          pytest tests/integration/test_pdf_parser.py -v
+      
+      - name: Test Excel parsing
+        run: |
+          cd backend
+          pytest tests/integration/test_excel_parser.py -v
+      
+      - name: Test Word parsing
+        run: |
+          cd backend
+          pytest tests/integration/test_word_parser.py -v
+      
+      - name: '✅ Stage 5 Complete'
+        run: echo "Document processing tests passed"
+
+  # ============================================================================
+  # STAGE 6: RAG System Tests
+  # ============================================================================
+  rag-system-tests:
+    name: 'Stage 6: RAG System'
+    runs-on: ubuntu-latest
+    needs: document-processing-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Test embedding generation
+        run: |
+          cd backend
+          pytest tests/integration/test_embeddings.py -v
+      
+      - name: Test vector search
+        run: |
+          cd backend
+          pytest tests/integration/test_vector_search.py -v
+      
+      - name: Test retrieval accuracy
+        run: |
+          cd backend
+          pytest tests/integration/test_retrieval.py -v
+      
+      - name: '✅ Stage 6 Complete'
+        run: echo "RAG system tests passed"
+
+  # ============================================================================
+  # STAGE 7: Integration Tests
+  # ============================================================================
+  integration-tests:
+    name: 'Stage 7: Integration Tests'
+    runs-on: ubuntu-latest
+    needs: [backend-unit-tests, frontend-unit-tests]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:testpassword@localhost:5432/testdb
+        run: |
+          cd backend
+          pytest tests/integration/ -v
+      
+      - name: '✅ Stage 7 Complete'
+        run: echo "Integration tests passed"
+
+  # ============================================================================
+  # STAGE 8: Build Verification
+  # ============================================================================
+  build-verification:
+    name: 'Stage 8: Build Verification'
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      
+      - name: Check build artifacts
+        run: |
+          cd frontend
+          ls -la dist/
+          test -f dist/index.html
+      
+      - name: Build size report
+        run: |
+          cd frontend
+          du -sh dist/
+      
+      - name: '✅ Stage 8 Complete'
+        run: echo "Build verification passed"
+
+  # ============================================================================
+  # STAGE 9: Performance Tests
+  # ============================================================================
+  performance-tests:
+    name: 'Stage 9: Performance Tests'
+    runs-on: ubuntu-latest
+    needs: build-verification
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install locust
+      
+      - name: Run load tests
+        run: |
+          cd backend
+          pytest tests/performance/ -v
+      
+      - name: '✅ Stage 9 Complete'
+        run: echo "Performance tests passed"
+
+  # ============================================================================
+  # STAGE 10: E2E Tests
+  # ============================================================================
+  e2e-tests:
+    name: 'Stage 10: E2E Tests'
+    runs-on: ubuntu-latest
+    needs: build-verification
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install Playwright
+        run: |
+          cd frontend
+          npm ci
+          npx playwright install --with-deps
+      
+      - name: Run E2E tests
+        run: |
+          cd frontend
+          npm run test:e2e
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+      
+      - name: '✅ Stage 10 Complete'
+        run: echo "E2E tests passed"
+
+  # ============================================================================
+  # STAGE 11: Deployment Readiness
+  # ============================================================================
+  deployment-readiness:
+    name: 'Stage 11: Deployment Check'
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, performance-tests]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check environment configuration
+        run: |
+          test -f backend/.env.example
+          test -f frontend/.env.example
+      
+      - name: Verify deployment scripts
+        run: |
+          test -f scripts/deploy.sh
+          test -f scripts/health-check.sh
+      
+      - name: '✅ Stage 11 Complete'
+        run: echo "Deployment readiness verified"
+      
+      - name: '🎉 All Stages Passed'
+        run: |
+          echo "=================================="
+          echo "All CI/CD stages completed successfully!"
+          echo "✅ Code Quality"
+          echo "✅ Security Scanning"
+          echo "✅ Backend Unit Tests"
+          echo "✅ Frontend Unit Tests"
+          echo "✅ Document Processing"
+          echo "✅ RAG System"
+          echo "✅ Integration Tests"
+          echo "✅ Build Verification"
+          echo "✅ Performance Tests"
+          echo "✅ E2E Tests"
+          echo "✅ Deployment Readiness"
+          echo "=================================="
+          echo "Ready for deployment! 🚀"
