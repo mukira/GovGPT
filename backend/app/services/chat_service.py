@@ -3,11 +3,12 @@ Chat Service
 Orchestrates RAG, news, sentiment, and LLM for chat responses
 """
 from typing import Dict, List, Iterator
-from app.services.vector_db import vector_db
+from app.services.vector_service import vector_service
 from app.services.llm_service import llm_service, SYSTEM_PROMPT
 from app.services.news.gdelt_service import gdelt_service
 from app.services.youtube_service import youtube_service
 from app.services.sentiment.social_sentiment import sentiment_service
+from app.services.social_media.social_aggregator import social_aggregator
 from app.utils.query_classifier import classify_query, get_query_confidence
 import json
 
