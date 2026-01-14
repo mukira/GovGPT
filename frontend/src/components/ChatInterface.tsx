@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { FormattedResponse } from './FormattedResponse'
+import { DecisionReport } from './DecisionReport'
 
 interface Message {
     id: string
@@ -15,6 +16,16 @@ interface Message {
 }
 
 const API_BASE_URL = 'http://localhost:8000'
+
+// Helper to detect if content is a JSON decision report
+const isDecisionReport = (content: string): boolean => {
+    try {
+        const parsed = JSON.parse(content)
+        return !!(parsed.decision_required && parsed.options && parsed.executive_summary)
+    } catch {
+        return false
+    }
+}
 
 export function ChatInterface() {
     const [messages, setMessages] = useState<Message[]>([])
@@ -167,15 +178,19 @@ export function ChatInterface() {
                     >
                         <div
                             className={`max-w-3xl ${message.role === 'user'
-                                    ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-sm'
-                                    : 'bg-gray-800 text-gray-100 rounded-2xl rounded-tl-sm border border-gray-700'
+                                ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-sm'
+                                : 'bg-gray-800 text-gray-100 rounded-2xl rounded-tl-sm border border-gray-700'
                                 } px-6 py-4 shadow-lg`}
                         >
                             {message.role === 'user' ? (
                                 <p className="text-sm leading-relaxed">{message.content}</p>
                             ) : (
                                 <>
-                                    <FormattedResponse content={message.content} />
+                                    {isDecisionReport(message.content) ? (
+                                        <DecisionReport report={JSON.parse(message.content)} />
+                                    ) : (
+                                        <FormattedResponse content={message.content} />
+                                    )}
 
                                     {message.sources && message.sources.length > 0 && (
                                         <div className="mt-6 pt-4 border-t border-gray-700">
