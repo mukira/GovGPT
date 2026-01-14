@@ -185,6 +185,32 @@ class LLMService:
             print(f"❌ Error generating response: {e}")
             return f"Error: {e}"
 
+    def stream_response(self, prompt: str) -> Iterator[str]:
+        """Stream response token by token for real-time UI updates"""
+        if not self.client:
+            yield "Groq client not initialized. Please check API key."
+            return
+            
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=2000,
+                stream=True  # Enable streaming
+            )
+            
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+                    
+        except Exception as e:
+            print(f"❌ Error streaming response: {e}")
+            yield f"Error: {e}"
+
     def generate_decision_report(
         self,
         question: str,
