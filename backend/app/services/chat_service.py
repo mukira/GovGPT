@@ -7,6 +7,7 @@ from app.services.vector_service import vector_service
 from app.services.llm_service import llm_service
 from app.services.news.gdelt_service import gdelt_service
 from app.services.social_media.social_aggregator import social_aggregator
+from app.services.social_media.youtube_comment_sentiment import youtube_comment_sentiment
 from app.utils.query_classifier import classify_query, get_query_confidence
 import json
 
@@ -88,17 +89,28 @@ class ChatService:
         except Exception as e:
             print(f"❌ Error fetching YouTube: {e}")
         
-        # 4. Get social sentiment on the topic
+        # 4. Get social sentiment from multiple sources
         try:
+            # Social media posts (Mastodon, Telegram)
             sentiment = social_aggregator.fetch_kenya_social(
                 keywords=keywords
             )
             context['sentiment'] = sentiment
-            print(f"💬 Fetched sentiment: {len(sentiment.get('posts', []))} posts")
+            
+            # YouTube comment sentiment
+            youtube_comments = youtube_comment_sentiment.get_sentiment_from_videos(
+                search_query,
+                max_videos=3,
+                comments_per_video=15
+            )
+            context['youtube_comments'] = youtube_comments
+            
+            print(f"💬 Fetched sentiment: {len(sentiment.get('posts', []))} posts, {youtube_comments.get('total_comments', 0)} YouTube comments")
         except Exception as e:
             print(f"❌ Error fetching sentiment: {e}")
         
-        print(f"✅ Context ready: {len(context['document_chunks'])} docs, {len(context['news'])} news, {len(context.get('youtube', []))} videos")
+        yt_comments = context.get('youtube_comments', {}).get('total_comments', 0)
+        print(f"✅ Context ready: {len(context['document_chunks'])} docs, {len(context['news'])} news, {len(context.get('youtube', []))} videos, {yt_comments} YT comments")
         return context
 
     
