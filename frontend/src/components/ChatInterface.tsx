@@ -84,7 +84,8 @@ export function ChatInterface() {
                 sources: []
             }
 
-            setMessages(prev => [...prev, assistantMessage])
+            // Don't add message yet - wait for first content chunk
+            // setMessages(prev => [...prev, assistantMessage])  // Removed to prevent duplicate bubbles
 
             while (reader) {
                 const { done, value } = await reader.read()
@@ -109,20 +110,42 @@ export function ChatInterface() {
                                     ...assistantMessage,
                                     content: assistantMessage.content + data.data
                                 }
-                                setMessages(prev => [...prev.slice(0, -1), assistantMessage])
+                                // Check if message already exists in array
+                                setMessages(prev => {
+                                    const exists = prev.find(m => m.id === assistantMessage.id)
+                                    if (exists) {
+                                        return [...prev.slice(0, -1), assistantMessage]
+                                    } else {
+                                        return [...prev, assistantMessage]
+                                    }
+                                })
                             } else if (data.type === 'report') {
                                 // Decision report - store as JSON string for DecisionReport component
                                 assistantMessage = {
                                     ...assistantMessage,
                                     content: JSON.stringify(data.data, null, 2)
                                 }
-                                setMessages(prev => [...prev.slice(0, -1), assistantMessage])
+                                setMessages(prev => {
+                                    const exists = prev.find(m => m.id === assistantMessage.id)
+                                    if (exists) {
+                                        return [...prev.slice(0, -1), assistantMessage]
+                                    } else {
+                                        return [...prev, assistantMessage]
+                                    }
+                                })
                             } else if (data.type === 'citations') {
                                 assistantMessage = {
                                     ...assistantMessage,
                                     sources: data.data
                                 }
-                                setMessages(prev => [...prev.slice(0, -1), assistantMessage])
+                                setMessages(prev => {
+                                    const exists = prev.find(m => m.id === assistantMessage.id)
+                                    if (exists) {
+                                        return [...prev.slice(0, -1), assistantMessage]
+                                    } else {
+                                        return [...prev, assistantMessage]
+                                    }
+                                })
                             }
                         } catch (e) {
                             console.error('Error parsing SSE:', e)
