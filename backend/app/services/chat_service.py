@@ -3,10 +3,13 @@ Chat Service
 Orchestrates RAG, news, sentiment, and LLM for chat responses
 """
 from typing import Dict, List, Iterator
-from app.services.vector_service import vector_service
-from app.services.llm_service import llm_service
+from app.services.vector_db import vector_db
+from app.services.llm_service import llm_service, SYSTEM_PROMPT
 from app.services.news.gdelt_service import gdelt_service
-from app.services.social_media.social_aggregator import social_aggregator
+from app.services.youtube_service import youtube_service
+from app.services.sentiment.social_sentiment import sentiment_service
+from app.utils.query_classifier import classify_query, get_query_confidence
+import json
 
 
 class ChatService:
@@ -159,6 +162,7 @@ class ChatService:
     ) -> Iterator[Dict]:
         """
         Stream chat response for real-time UI updates
+        AUTO-DETECTS if query needs decision report or exploratory response
         
         Args:
             message: User's message
@@ -168,6 +172,19 @@ class ChatService:
         Yields:
             Response chunks and metadata
         """
+        # Auto-detect query type
+        query_classification = get_query_confidence(message)
+        query_type = query_classification['type']
+        
+        print(f"\n🔍 Query Classification: {query_type.upper()} (confidence: {query_classification['confidence']:.0%})")
+        print(f"   Reasoning: {query_classification['reasoning']}")
+        
+        # Send classification info to frontend
+        yield {
+            'type': 'classification',
+            'data': query_classification
+        }
+        
         # Gather context (send as first chunk)
         context = self.get_context(message)
         
@@ -180,20 +197,58 @@ class ChatService:
             }
         }
         
-        # Build prompt
-        prompt = llm_service.create_prompt(
-            question=message,
-            context_chunks=context['document_chunks'],
-            news_context=context['news'] if include_news else None,
-            sentiment_context=context['sentiment'] if include_sentiment else None
-        )
-        
-        # Stream response
-        for chunk in llm_service.stream_response(prompt):
-            yield {
-                'type': 'content',
-                'data': chunk
-            }
+        # Route based on query type
+        if query_type == 'decision' and query_classification['confidence'] >= 0.70:
+            # Generate structured decision report
+            print(f"📊 Generating DECISION REPORT (structured JSON)")
+            
+            try:
+                report = llm_service.generate_decision_report(
+                    question=message,
+                    context_chunks=context['document_chunks'],
+                    news_context=context['news'] if include_news else None,
+                    sentiment_context=context['sentiment'] if include_sentiment else None
+                )
+                
+                # Yield the full report as JSON
+                yield {
+                    'type': 'report',
+                    'data': report
+                }
+                
+            except Exception as e:
+                print(f"❌ Error generating decision report: {e}")
+                # Fallback to streaming markdown
+                prompt = llm_service.create_prompt(
+                    question=message,
+                    context_chunks=context['document_chunks'],
+                    news_context=context['news'] if include_news else None,
+                    sentiment_context=context['sentiment'] if include_sentiment else None
+                )
+                
+                for chunk in llm_service.stream_response(prompt):
+                    yield {
+                        'type': 'content',
+                        'data': chunk
+                    }
+        else:
+            # Stream exploratory markdown response
+            print(f"📝 Generating EXPLORATORY RESPONSE (markdown streaming)")
+            
+            # Build prompt
+            prompt = llm_service.create_prompt(
+                question=message,
+                context_chunks=context['document_chunks'],
+                news_context=context['news'] if include_news else None,
+                sentiment_context=context['sentiment'] if include_sentiment else None
+            )
+            
+            # Stream response
+            for chunk in llm_service.stream_response(prompt):
+                yield {
+                    'type': 'content',
+                    'data': chunk
+                }
         
         # Send citations at the end
         citations = self._format_citations(context)
