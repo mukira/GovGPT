@@ -63,7 +63,7 @@ class YouTubeService:
         published_after: str = None
     ) -> List[Dict]:
         """
-        Search for Kenya-related videos
+        Search for Kenya-related videos with retry logic
         
         Args:
             query: Search query
@@ -76,28 +76,69 @@ class YouTubeService:
         if not self.youtube:
             return []
         
-        try:
-            request = self.youtube.search().list(
-                part='snippet',
-                q=query,
-                type='video',
-                maxResults=max_results,
-                regionCode='KE',  # Kenya region
-                relevanceLanguage='en',
-                order='date'
-            )
-            response = request.execute()
-            
-            videos = []
-            for item in response.get('items', []):
-                video = self._standardize_video(item)
-                videos.append(video)
-            
-            return videos
-            
-        except Exception as e:
-            print(f"Error searching videos: {e}")
-            return []
+        # Retry configuration
+        max_retries = 3
+        base_delay = 2  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                # Build request with longer timeout
+                request = self.youtube.search().list(
+                    part='snippet',
+                    q=query,
+                    type='video',
+                    maxResults=max_results,
+                    regionCode='KE',  # Kenya region
+                    relevanceLanguage='en',
+                    order='date'
+                )
+                
+                # Execute with explicit timeout (60 seconds)
+                import socket
+                original_timeout = socket.getdefaulttimeout()
+                try:
+                    socket.setdefaulttimeout(60)  # 60 second timeout
+                    response = request.execute()
+                finally:
+                    socket.setdefaulttimeout(original_timeout)
+                
+                # Success - process results
+                videos = []
+                for item in response.get('items', []):
+                    video = self._standardize_video(item)
+                    videos.append(video)
+                
+                print(f"📺 Found {len(videos)} YouTube videos on '{query}'")
+                return videos
+                
+            except socket.timeout:
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"⚠️  YouTube timeout (attempt {attempt + 1}/{max_retries}), retrying in {delay}s...")
+                    import time
+                    time.sleep(delay)
+                    continue
+                else:
+                    print(f"❌ YouTube timeout after {max_retries} attempts")
+                    return []
+                    
+            except Exception as e:
+                error_str = str(e).lower()
+                
+                # Retry on network errors
+                if any(x in error_str for x in ['timeout', 'timed out', 'ssl', 'connection']):
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        print(f"⚠️  YouTube error: {e} (attempt {attempt + 1}/{max_retries}), retrying in {delay}s...")
+                        import time
+                        time.sleep(delay)
+                        continue
+                
+                # Don't retry on quota/auth errors
+                print(f"❌ YouTube API error: {e}")
+                return []
+        
+        return []
     
     def get_video_comments(
         self,
