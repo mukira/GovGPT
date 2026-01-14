@@ -3,25 +3,23 @@ Sentiment Analysis Service using TextBlob
 Fast, lightweight sentiment analysis for social media
 """
 from typing import Dict, List
-from textblob import TextBlob
 
 
 class SentimentAnalyzer:
-    """Lightweight sentiment analysis using TextBlob"""
+    """Lightweight sentiment analysis using TextBlob - lazy loaded"""
     
     def __init__(self):
-        print("✅ Sentiment analyzer ready (TextBlob)")
+        self._blob = None
+    
+    @property
+    def TextBlob(self):
+        if self._blob is None:
+            from textblob import TextBlob
+            self._blob = TextBlob
+        return self._blob
     
     def analyze(self, text: str) -> Dict:
-        """
-        Analyze sentiment of text
-        
-        Args:
-            text: Text to analyze
-            
-        Returns:
-            Dictionary with sentiment label and score
-        """
+        """Analyze sentiment of text"""
         if not text or len(text.strip()) < 3:
             return {
                 'sentiment': 'neutral',
@@ -32,12 +30,10 @@ class SentimentAnalyzer:
             }
         
         try:
-            # Run TextBlob analysis
-            blob = TextBlob(text)
-            polarity = blob.sentiment.polarity  # -1 to 1
-            subjectivity = blob.sentiment.subjectivity  # 0 to 1
+            blob = self.TextBlob(text)
+            polarity = blob.sentiment.polarity
+            subjectivity = blob.sentiment.subjectivity
             
-            # Map polarity to sentiment label
             if polarity > 0.1:
                 sentiment = 'positive'
             elif polarity < -0.1:
@@ -45,7 +41,6 @@ class SentimentAnalyzer:
             else:
                 sentiment = 'neutral'
             
-            # Calculate confidence based on polarity strength and subjectivity
             abs_polarity = abs(polarity)
             if abs_polarity > 0.5:
                 confidence = 'high'
@@ -61,9 +56,7 @@ class SentimentAnalyzer:
                 'polarity': round(polarity, 3),
                 'subjectivity': round(subjectivity, 3)
             }
-            
         except Exception as e:
-            print(f"Error analyzing sentiment: {e}")
             return {
                 'sentiment': 'neutral',
                 'score': 0.0,
@@ -73,9 +66,7 @@ class SentimentAnalyzer:
             }
     
     def analyze_batch(self, texts: List[str]) -> List[Dict]:
-        """Analyze sentiment for multiple texts"""
         return [self.analyze(text) for text in texts]
 
 
-# Singleton instance
 sentiment_analyzer = SentimentAnalyzer()

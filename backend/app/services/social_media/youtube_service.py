@@ -55,9 +55,6 @@ class YouTubeService:
         
         if api_key:
             self.youtube = build('youtube', 'v3', developerKey=api_key)
-            print("✅ YouTube API connected!")
-        else:
-            print("⚠️ YouTube API key not provided - limited functionality")
     
     def search_kenya_videos(
         self,

@@ -38,7 +38,10 @@ class GDELTService:
             
             # Add policy-specific keywords if provided
             if keywords:
-                query_parts.extend(keywords)
+                # Filter out 'kenya' to avoid duplication
+                topic_keywords = [k for k in keywords if k.lower() != 'kenya']
+                if topic_keywords:
+                    query_parts.extend(topic_keywords[:3])
             else:
                 # Default: comprehensive Kenya policy coverage
                 policy_keywords = [
@@ -49,6 +52,7 @@ class GDELTService:
                 query_parts.extend(policy_keywords[:3])  # Add top 3 for broader coverage
             
             query = " ".join(query_parts)
+            print(f"📰 GDELT search: '{query}'")
             
             # Build API parameters
             params = {
@@ -70,15 +74,30 @@ class GDELTService:
             if "articles" in data:
                 for item in data["articles"]:
                     article = self._standardize_article(item)
-                    if article:
+                    if article and self._is_kenya_relevant(article):
                         articles.append(article)
             
+            print(f"📰 GDELT: Found {len(articles)} Kenya-relevant articles")
             return articles[:max_results]
             
         except Exception as e:
-            print(f"Error fetching GDELT data: {e}")
+            print(f"❌ Error fetching GDELT data: {e}")
             return []
     
+    def _is_kenya_relevant(self, article: Dict) -> bool:
+        """Check if article is actually about Kenya"""
+        text = f"{article.get('title', '')} {article.get('url', '')} {article.get('domain', '')}".lower()
+        
+        # Must contain Kenya reference
+        kenya_terms = ['kenya', 'kenyan', 'nairobi', '.ke']
+        has_kenya = any(term in text for term in kenya_terms)
+        
+        # Exclude other African countries (unless Kenya is also mentioned)
+        exclude_terms = ['sudan', 'botswana', 'somalia', 'ethiopia', 'uganda', 'tanzania']
+        is_other_country = any(term in text for term in exclude_terms) and not has_kenya
+        
+        return has_kenya and not is_other_country
+            
     def _standardize_article(self, item: Dict) -> Optional[Dict]:
         """Convert GDELT article to standardized format"""
         try:
@@ -125,4 +144,3 @@ class GDELTService:
 
 # Singleton instance
 gdelt_service = GDELTService()
-

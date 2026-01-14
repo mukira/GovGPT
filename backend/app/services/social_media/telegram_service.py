@@ -30,9 +30,7 @@ class TelegramService:
         """
         self.bot_token = bot_token
         if bot_token:
-            print("✅ Telegram Bot connected!")
-        else:
-            print("⚠️ Telegram bot token not provided - using web scrape fallback")
+            pass  # Bot initialization would go here
     
     def get_channel_messages(
         self,

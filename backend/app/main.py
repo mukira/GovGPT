@@ -78,11 +78,63 @@ async def health_check():
     )
 
 
-# TODO: Import and include routers when implemented
-# from app.api import chat, documents, analysis
-# app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
-# app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
-# app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    from app.services.vector_service import vector_service
+    from app.services.llm_service import llm_service
+    from app.services.google_drive_service import drive_service
+    
+    # Initialize vector service with Qdrant credentials
+    if settings.QDRANT_URL and settings.QDRANT_API_KEY:
+        try:
+            vector_service.qdrant_url = settings.QDRANT_URL
+            vector_service.qdrant_key = settings.QDRANT_API_KEY
+            vector_service._initialize()
+            logger.info("✅ Vector service initialized")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize vector service: {e}")
+    
+    # Initialize LLM service with Groq API key
+    if settings.GROQ_API_KEY:
+        try:
+            from groq import Groq
+            llm_service.api_key = settings.GROQ_API_KEY
+            llm_service.client = Groq(api_key=settings.GROQ_API_KEY)
+            logger.info("✅ LLM service initialized")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize LLM service: {e}")
+    
+    # Initialize Google Drive service if credentials provided
+    if settings.GOOGLE_DRIVE_CREDENTIALS_PATH:
+        try:
+            drive_service.credentials_path = settings.GOOGLE_DRIVE_CREDENTIALS_PATH
+            drive_service._authenticate()
+            logger.info("✅ Google Drive service initialized")
+        except Exception as e:
+            logger.error(f"⚠️  Google Drive not initialized: {e}")
+    
+    # Initialize YouTube service with API key
+    if settings.YOUTUBE_API_KEY:
+        try:
+            from app.services.social_media.youtube_service import youtube_service
+            youtube_service.api_key = settings.YOUTUBE_API_KEY
+            from googleapiclient.discovery import build
+            youtube_service.youtube = build('youtube', 'v3', developerKey=settings.YOUTUBE_API_KEY)
+            logger.info("✅ YouTube service initialized with API key")
+        except Exception as e:
+            logger.error(f"⚠️  YouTube service not initialized: {e}")
+
+
+# Import API routers
+from app.api import news, social, sentiment, chat, documents
+
+# Register routers
+app.include_router(news.router, prefix="/api/news", tags=["news"])
+app.include_router(social.router, prefix="/api/social", tags=["social"])
+app.include_router(sentiment.router, prefix="/api/sentiment", tags=["sentiment"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 
 
 if __name__ == "__main__":
@@ -93,3 +145,4 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.DEBUG
     )
+
