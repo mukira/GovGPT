@@ -98,7 +98,13 @@ export function ChatInterface() {
                         try {
                             const data = JSON.parse(line.slice(6))
 
-                            if (data.type === 'content') {
+                            if (data.type === 'classification') {
+                                // Query classification info - just log it
+                                console.log('🔍 Query classified as:', data.data.type, `(${(data.data.confidence * 100).toFixed(0)}%)`)
+                            } else if (data.type === 'context') {
+                                // Context gathering info - just log it  
+                                console.log('📚 Context:', data.data)
+                            } else if (data.type === 'content') {
                                 assistantMessage = {
                                     ...assistantMessage,
                                     content: assistantMessage.content + data.data
