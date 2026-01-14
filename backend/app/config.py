@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
     YOUTUBE_API_KEY: str = ""
+    TELEGRAM_API_ID: str = ""
+    TELEGRAM_API_HASH: str = ""
     
     # Application
     ENVIRONMENT: str = "development"

@@ -21,16 +21,23 @@ class TelegramService:
     
     BASE_URL = "https://api.telegram.org/bot{token}/"
     
-    def __init__(self, bot_token: str = None):
+    def __init__(self, bot_token: str = None, api_id: str = None, api_hash: str = None):
         """
         Initialize Telegram service
         
         Args:
-            bot_token: Telegram Bot API token
+            bot_token: Telegram Bot API token (optional)
+            api_id: Telegram API ID from my.telegram.org
+            api_hash: Telegram API Hash from my.telegram.org
         """
         self.bot_token = bot_token
-        if bot_token:
-            pass  # Bot initialization would go here
+        self.api_id = api_id
+        self.api_hash = api_hash
+        
+        if api_id and api_hash:
+            self.authenticated = True
+        else:
+            self.authenticated = False
     
     def get_channel_messages(
         self,
@@ -146,5 +153,16 @@ class TelegramService:
         return matching[:limit]
 
 
-# Singleton instance
-telegram_service = TelegramService()
+# Initialize service with credentials from environment
+from app.config import settings
+import os
+
+api_id = settings.TELEGRAM_API_ID or os.getenv('TELEGRAM_API_ID')
+api_hash = settings.TELEGRAM_API_HASH or os.getenv('TELEGRAM_API_HASH')
+
+if api_id and api_hash:
+    print(f"✅ Telegram service initialized with API ID: {api_id}")
+    telegram_service = TelegramService(bot_token=None, api_id=api_id, api_hash=api_hash)
+else:
+    print("⚠️  Telegram credentials not found - using public access only")
+    telegram_service = TelegramService()
